@@ -1,0 +1,41 @@
+{
+  "name": "homebridge-skyworth-airton",
+  "displayName": "Homebridge Skyworth Airton",
+  "version": "0.1.0",
+  "description": "Local HomeKit control for Skyworth and Airton Wi-Fi air conditioners.",
+  "author": "trcm",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "homebridge-plugin",
+    "supports-hap",
+    "skyworth",
+    "airton",
+    "air-conditioner"
+  ],
+  "main": "dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "config.schema.json",
+    "README.md",
+    "PROVISIONING_PROTOCOL.md",
+    "skyworth_provision.py"
+  ],
+  "engines": {
+    "node": "^22.10.0 || ^24.0.0",
+    "homebridge": "^1.8.0 || ^2.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.0",
+    "homebridge": "^2.0.0",
+    "typescript": "^6.0.3"
+  }
+}

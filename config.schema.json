@@ -1,0 +1,80 @@
+{
+  "pluginAlias": "SkyworthAirton",
+  "pluginType": "platform",
+  "singular": true,
+  "strictValidation": true,
+  "schema": {
+    "type": "object",
+    "required": [
+      "name",
+      "devices"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "default": "Skyworth Airton"
+      },
+      "devices": {
+        "title": "Air Conditioners",
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": [
+            "name",
+            "host"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "required": true
+            },
+            "host": {
+              "title": "IP Address or Hostname",
+              "type": "string",
+              "required": true,
+              "placeholder": "192.168.1.50"
+            },
+            "id": {
+              "title": "Stable Device ID",
+              "type": "string",
+              "description": "Optional stable identifier. Recommended if the device IP may change."
+            },
+            "port": {
+              "title": "TCP Port",
+              "type": "integer",
+              "default": 1998,
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "model": {
+              "title": "Model",
+              "type": "string",
+              "default": "Wi-Fi Air Conditioner"
+            }
+          }
+        }
+      },
+      "pollInterval": {
+        "title": "Polling Interval",
+        "description": "Seconds between status requests.",
+        "type": "integer",
+        "default": 30,
+        "minimum": 5,
+        "maximum": 3600
+      },
+      "timeout": {
+        "title": "TCP Timeout",
+        "description": "Seconds before a device request fails.",
+        "type": "integer",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 30
+      }
+    }
+  }
+}

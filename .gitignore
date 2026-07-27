@@ -1,0 +1,6 @@
+dist/
+node_modules/
+*.tgz
+__pycache__/
+Easy Home AMS_2.0.2.apk
+Easy Home AMS_2.0.2/
