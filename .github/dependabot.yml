@@ -7,6 +7,15 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: deps
+    ignore:
+      # typescript-eslint 8.x peers typescript ">=4.8.4 <6.1.0" and has no
+      # release that accepts TypeScript 7 yet, so a major bump here cannot even
+      # install: npm fails the ERESOLVE step and every job in the run dies with
+      # it. Minor and patch TypeScript updates still arrive. Drop this once
+      # typescript-eslint ships TypeScript 7 support and the toolchain moves.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
     groups:
       npm-minor-and-patch:
         update-types:
