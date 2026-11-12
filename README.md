@@ -214,6 +214,12 @@ UI, under the package's **Trusted Publisher** settings: GitHub Actions, owner
 needed inside the runner; a publisher that only allows direct publishing is
 rejected by that call.
 
+If the npmjs step fails with `ENEEDAUTH`, npm reached the registry with no
+credentials, which means that publisher is missing, is registered under a
+different workflow name, or does not allow staged publishing. Nothing is
+published by a run that fails that way, so re-running the workflow once the
+publisher is in place is safe.
+
 ## Configuration
 
 Use the Homebridge UI or add this platform entry to `config.json`:
