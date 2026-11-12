@@ -1,7 +1,7 @@
 {
   "name": "homebridge-skyworth-airton",
   "displayName": "Homebridge Skyworth Airton",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local HomeKit control for Skyworth and Airton Wi-Fi air conditioners.",
   "author": "trcm",
   "homepage": "https://github.com/tomtastic/homebridge-skyworth-airton#readme",

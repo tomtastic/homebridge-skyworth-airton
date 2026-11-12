@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/tomtastic/homebridge-skyworth-airton/releases/tag/v1.0.1) - 2026-11-12
+
+### Fixed
+
+- `config.schema.json` is now valid JSON Schema, which the Homebridge plugin verification check requires. The `name` and `host` fields of an air conditioner carried `"required": true`, but in JSON Schema `required` is an array on the object that owns the properties, so AJV - the validator that check runs over the schema - could not compile it. Both fields were already named in the `required` array of the device object, so validation is unchanged: a device without a name or a host, and a platform with no devices, are still rejected. A test now asserts the schema has no field-level `required`, that every name in a `required` array is a property of its own object, and that those four fields stay required.
+
 ## [1.0.0](https://github.com/tomtastic/homebridge-skyworth-airton/releases/tag/v1.0.0) - 2026-11-12
 
 ### Added

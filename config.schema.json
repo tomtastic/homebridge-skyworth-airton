@@ -30,13 +30,11 @@
           "properties": {
             "name": {
               "title": "Name",
-              "type": "string",
-              "required": true
+              "type": "string"
             },
             "host": {
               "title": "IP Address or Hostname",
               "type": "string",
-              "required": true,
               "placeholder": "192.168.1.50"
             },
             "id": {
