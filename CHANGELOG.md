@@ -19,7 +19,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `engines.node` is now `^22.12.0 || ^24.0.0 || ^26.0.0` (was `^22.10.0 || ^24.0.0`), covering every Node LTS Homebridge 2.x runs on, as the verified-plugin requirements ask for.
 - `engines.homebridge` is now `^1.9.0 || ^2.0.0` (was `^1.8.0 || ^2.0.0`). Homebridge 1.8.x only runs on Node 18 and 20, both end of life, so the old floor could not be installed or tested on any currently supported Node release.
-- `LICENSE` and `CHANGELOG.md` are now part of the published package, and `@types/node` tracks the oldest supported runtime (Node 22) instead of a newer one, so nothing compiles against APIs that release does not have.
+- `LICENSE` and `CHANGELOG.md` are now part of the published package.
+- `minimatch` is pinned to `^11.0.8` with an npm override. The ESLint 10 line still requires `^10.2.x`, and no 10.x release is patched against CVE-2026-118764, so without the override `npm audit` cannot reach a fixed version and Dependabot's security update for it fails: its only other path is a major downgrade of ESLint, which it refuses. The override covers dev tooling only, because the published package has no dependencies.
 
 ### Fixed
 

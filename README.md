@@ -169,6 +169,14 @@ provisioning tool has its own tests:
 python3 -m unittest test_skyworth_provision
 ```
 
+`package.json` overrides `minimatch` to `^11.0.8`. ESLint 10 still requires
+`^10.2.x`, and every 10.x release is affected by
+[CVE-2026-118764](https://github.com/advisories/GHSA-g3hv-75wg-m249) with no
+patched 10.x available, so the override is the only way to a fixed version until
+ESLint accepts 11.x. It reaches dev tooling only — the published package has no
+dependencies — and the sole consumer, `@eslint/config-array`, uses just the
+`Minimatch` class, which 11.x still exports.
+
 ## Releasing
 
 1. Add a section for the new version to `CHANGELOG.md`. The release notes of the
