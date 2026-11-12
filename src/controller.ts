@@ -23,12 +23,16 @@ export class SkyworthController {
   ) {}
 
   public async start(): Promise<void> {
-    await this.refresh();
+    // Arm the loop before the first read rather than after it. An air conditioner
+    // that is offline or slow when Homebridge starts must be retried; awaiting
+    // first meant a failed read threw out of start() and left the device dead
+    // until Homebridge was restarted.
     this.pollTimer = setInterval(() => {
       void this.refresh().catch((error: unknown) => {
         this.log.warn('Unable to refresh air-conditioner state:', this.errorMessage(error));
       });
     }, this.pollIntervalMs);
+    await this.refresh();
   }
 
   public stop(): void {

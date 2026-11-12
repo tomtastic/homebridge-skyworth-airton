@@ -58,3 +58,32 @@ test('serializes concurrent read-modify-write operations', async () => {
     [0x09, 0, 0, 0x80],
   ]);
 });
+
+test('keeps polling after a failed first read', async () => {
+  let attempts = 0;
+  let published;
+  const client = {
+    async getStatus() {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error('connect ECONNREFUSED 127.0.0.1:1998');
+      }
+      return state();
+    },
+  };
+  const controller = new SkyworthController(
+    client,
+    10,
+    { warn() {} },
+    (next) => {
+      published = next;
+    },
+  );
+
+  await assert.rejects(() => controller.start(), /ECONNREFUSED/);
+  await new Promise((resolve) => setTimeout(resolve, 60));
+
+  assert.ok(attempts >= 2, `expected the poll loop to retry, saw ${attempts} read(s)`);
+  assert.equal(published.setpointC, 16);
+  controller.stop();
+});
