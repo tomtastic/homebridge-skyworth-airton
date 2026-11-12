@@ -1,4 +1,4 @@
-# Homebridge Skyworth Airton
+# homebridge-skyworth-airton
 
 <img width="100" height="100" alt="skyton" src="https://github.com/user-attachments/assets/5875b9f5-ac7b-4730-a597-d13994b80a26" />
 
