@@ -1,5 +1,7 @@
 # Homebridge Skyworth Airton
 
+<img width="100" height="100" alt="skyton" src="https://github.com/user-attachments/assets/5875b9f5-ac7b-4730-a597-d13994b80a26" />
+
 [![ci](https://github.com/tomtastic/homebridge-skyworth-airton/actions/workflows/ci.yml/badge.svg)](https://github.com/tomtastic/homebridge-skyworth-airton/actions/workflows/ci.yml)
 [![Homebridge 2.0](https://img.shields.io/badge/Homebridge-2.0%20ready-brightgreen)](https://github.com/homebridge/homebridge/wiki/Updating-To-Homebridge-v2.0)
 [![npm version](https://badgen.net/npm/v/homebridge-skyworth-airton)](https://www.npmjs.com/package/homebridge-skyworth-airton)
