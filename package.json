@@ -1,7 +1,7 @@
 {
   "name": "homebridge-skyworth-airton",
   "displayName": "Homebridge Skyworth Airton",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Local HomeKit control for Skyworth and Airton Wi-Fi air conditioners.",
   "author": "trcm",
   "homepage": "https://github.com/tomtastic/homebridge-skyworth-airton#readme",
@@ -29,21 +29,30 @@
     "dist",
     "config.schema.json",
     "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
     "PROVISIONING_PROTOCOL.md",
     "skyworth_provision.py"
   ],
   "engines": {
-    "node": "^22.10.0 || ^24.0.0",
-    "homebridge": "^1.8.0 || ^2.0.0"
+    "node": "^22.12.0 || ^24.0.0 || ^26.0.0",
+    "homebridge": "^1.9.0 || ^2.0.0"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rimraf dist && tsc",
+    "lint": "eslint . --max-warnings=0",
+    "prepublishOnly": "npm run lint && npm run build",
     "test": "npm run build && node --test",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^25.0.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.12.0",
+    "eslint": "^10.9.0",
+    "globals": "^17.14.0",
     "homebridge": "^2.0.0",
-    "typescript": "^6.0.3"
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0"
   }
 }

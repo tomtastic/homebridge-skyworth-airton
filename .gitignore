@@ -4,3 +4,6 @@ node_modules/
 __pycache__/
 Easy Home AMS_2.0.2.apk
 Easy Home AMS_2.0.2/
+
+# Homebridge user directory used by the CI compatibility job
+.homebridge-compat/
