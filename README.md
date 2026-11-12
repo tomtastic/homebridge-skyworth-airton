@@ -189,15 +189,28 @@ dependencies — and the sole consumer, `@eslint/config-array`, uses just the
    git push origin v1.0.0
    ```
 
-3. `publish.yml` runs the checks, publishes to npm with
+3. `publish.yml` runs the checks, stages the package on npm through
    [trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC, so no
-   npm token lives in the repository), mirrors the package to GitHub Packages,
-   and creates the GitHub Release.
+   npm token lives in the repository), mirrors it to GitHub Packages, and
+   creates the GitHub Release.
+
+4. Staged is not published: the version is on npm but nobody can install it
+   until you approve the stage, which is where the proof-of-presence 2FA
+   happens. From a machine logged in as an npm account that can publish the
+   package (`npm login`, 2FA enabled):
+
+   ```sh
+   npm stage list
+   npm stage approve <stage-id> --otp <code>
+   ```
 
 The first release needs the npm trusted publisher registered once in the npm
 UI, under the package's **Trusted Publisher** settings: GitHub Actions, owner
 `tomtastic`, repository `homebridge-skyworth-airton`, workflow name
-`publish.yml`.
+`publish.yml`, with staged publishing allowed. The workflow calls
+`npm stage publish` rather than `npm publish` so that no authenticator code is
+needed inside the runner; a publisher that only allows direct publishing is
+rejected by that call.
 
 ## Configuration
 
