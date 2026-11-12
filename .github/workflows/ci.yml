@@ -1,0 +1,175 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HB_DIR: ${{ github.workspace }}/.homebridge-compat
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        # LTS versions Homebridge 2.x runs on; keep in sync with engines.node in
+        # package.json — the --engine-strict install below fails the job if the
+        # matrix and the declared range drift apart.
+        node: [22, 24, 26]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install
+        run: npm ci --engine-strict
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+
+  # The unit tests emulate the HAP; this boots real Homebridge against the plugin,
+  # which is the check that catches a plugin only ever working against the HAP it
+  # was compiled against rather than the one Homebridge itself ships.
+  compat:
+    name: homebridge ${{ matrix.homebridge }} / node ${{ matrix.node }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The floors declared in engines.homebridge, so those numbers cannot be
+          # a lie. 1.9.0 is both the 1.x floor and the newest 1.x release; 1.8.x is
+          # deliberately not declared because it only runs on Node 18/20, both EOL.
+          - homebridge: 1.9.0
+            node: 22
+          - homebridge: 2.0.0
+            node: 22
+          # Newest release of each major Homebridge supports.
+          - homebridge: 2
+            node: 22
+          - homebridge: 2
+            node: 24
+          - homebridge: 2
+            node: 26
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install and build
+        # The plugin's entry point is the compiled output, so Homebridge needs a
+        # build before it can load the checkout.
+        run: |
+          npm ci
+          npm run build
+      - name: Configure a bridge
+        run: |
+          mkdir -p "$HB_DIR"
+          cat > "$HB_DIR/config.json" <<'JSON'
+          {
+            "bridge": {
+              "name": "SkyworthCompat",
+              "username": "0E:1A:2B:3C:4D:5E",
+              "port": 51842,
+              "pin": "031-45-154"
+            },
+            "platforms": [
+              {
+                "platform": "SkyworthAirton",
+                "name": "Skyworth Airton",
+                "pollInterval": 5,
+                "timeout": 2,
+                "devices": [
+                  {
+                    "name": "Compat Air Conditioner",
+                    "host": "127.0.0.1",
+                    "port": 1,
+                    "id": "compat-ac"
+                  }
+                ]
+              }
+            ]
+          }
+          JSON
+      - name: Boot Homebridge with the plugin
+        run: |
+          # -P points at this checkout, whose package.json makes Homebridge load it
+          # as a single plugin, and --strict-plugin-resolution stops it looking
+          # anywhere else. -Q only suppresses the QR code. Port 1 on loopback is
+          # closed: the poll loop has to degrade into log lines, never a crash.
+          # A clean run is one we stopped ourselves: Homebridge up to 2.0 dies from
+          # the SIGTERM (exit 143), 2.2 and later catch it and shut down cleanly
+          # (exit 0), so both count only when the log shows it handled the signal.
+          # Anything else means Homebridge gave up on its own.
+          set +e
+          timeout --preserve-status 40 npx --yes "homebridge@${{ matrix.homebridge }}" \
+            -U "$HB_DIR" -P "$GITHUB_WORKSPACE" --strict-plugin-resolution -Q > "$HB_DIR/homebridge.log" 2>&1
+          status=$?
+          set -e
+          log="$HB_DIR/homebridge.log"
+          if [ "$status" -ne 143 ] && { [ "$status" -ne 0 ] || ! grep -q "Got SIGTERM, shutting down" "$log"; }; then
+            echo "::error::Homebridge ${{ matrix.homebridge }} exited with $status instead of staying up"
+            cat "$log"
+            exit 1
+          fi
+      - name: Check the plugin loaded cleanly
+        run: |
+          log="$HB_DIR/homebridge.log"
+          version=$(node -p "require('./package.json').version")
+          need() {
+            if ! grep -qE "$1" "$log"; then
+              echo "::error::'$1' missing from the Homebridge log"
+              cat "$log"
+              exit 1
+            fi
+          }
+          forbid() {
+            if grep -qE "$1" "$log"; then
+              echo "::error::'$1' found in the Homebridge log"
+              cat "$log"
+              exit 1
+            fi
+          }
+          need "Loaded plugin: .*homebridge-skyworth-airton@${version}"
+          need "Registering platform 'homebridge-skyworth-airton\.SkyworthAirton'"
+          need "(Adding accessory:|Loading accessory from cache:) Compat Air Conditioner"
+          need "is running on port"
+          # Homebridge only warns when a plugin's declared engines do not cover the
+          # runtime it is actually on, so these two make the matrix a real check on
+          # the engines ranges rather than a claim in package.json. The article in
+          # the wording differs between releases ("requires a Node.js version of"
+          # on 2.x, "requires Node.js version of" on 1.9), and Homebridge logs the
+          # same complaint about itself, hence the plugin-scoped prefix.
+          forbid "The plugin \"homebridge-skyworth-airton\" requires (a )?Homebridge version of"
+          forbid "The plugin \"homebridge-skyworth-airton\" requires (a )?Node\\.js version of"
+          # Connection failures against the closed port are expected; crashes are not.
+          forbid "TypeError|ReferenceError|is not a function|uncaughtException|UnhandledPromiseRejection"
+          echo "SkyworthAirton published on Homebridge ${{ matrix.homebridge }} with node ${{ matrix.node }}"
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: homebridge-${{ matrix.homebridge }}-node${{ matrix.node }}-log
+          path: ${{ env.HB_DIR }}/homebridge.log
+
+  provisioning:
+    name: provisioning tool
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Test
+        run: python -m unittest -v test_skyworth_provision

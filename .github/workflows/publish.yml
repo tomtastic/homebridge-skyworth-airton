@@ -1,0 +1,109 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write # OIDC: npm trusted publishing for the npmjs stage
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      # npm stage publish ships with recent npm releases; make sure it exists
+      - name: Install latest npm
+        run: npm install -g npm@latest
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Stage publish to npmjs
+        id: npmjs
+        run: |
+          # The name in package.json is already the npmjs name, so unlike the
+          # scoped GitHub Packages stage below nothing is renamed here.
+          # Trusted publishing (OIDC): npm detects the GitHub Actions OIDC
+          # environment (id-token: write) and authenticates with the short-lived
+          # JWT allowed by the package's trusted publisher config, so no npm
+          # token is stored in the repo. Set that publisher up once in the npm
+          # UI: GitHub Actions, owner tomtastic, repo homebridge-skyworth-airton,
+          # workflow publish.yml.
+          set -o pipefail
+          if npm stage publish --registry https://registry.npmjs.org 2>&1 | tee publish.log; then
+            exit 0
+          fi
+          if grep -qiE "EPUBLISHCONFLICT|E409|already published|previously published|already staged" publish.log; then
+            echo "npmjs: version already published, skipping"
+          else
+            cat publish.log
+            exit 1
+          fi
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Project-level .npmrc in the repo root: npm always reads it for
+          # commands run here, regardless of where the user config lives.
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
+          # GitHub Packages only accepts the account-scoped name, so the unscoped
+          # npmjs name is rewritten for this stage. GITHUB_REPOSITORY is owner/repo
+          # and only the repo name belongs in the unscoped part (a full owner/repo
+          # would create a double slash).
+          npm pkg set name="@$GITHUB_REPOSITORY_OWNER/${GITHUB_REPOSITORY##*/}"
+          # publishConfig carries no registry, so this stage names it explicitly
+          # rather than relying on the default registry.
+          set -o pipefail
+          if npm publish --registry https://npm.pkg.github.com --access public 2>&1 | tee publish.log; then
+            rm -f .npmrc
+            exit 0
+          fi
+          if grep -qiE "EPUBLISHCONFLICT|E409|already published|previously published" publish.log; then
+            echo "GitHub Packages: version already published, skipping"
+            rm -f .npmrc
+          else
+            cat publish.log
+            exit 1
+          fi
+      # Homebridge UI shows the GitHub Release notes for a version; create
+      # the release (skip if it already exists). GITHUB_TOKEN cannot be
+      # granted the workflows permission (the parser rejects it), so the tag
+      # must point at the tip of main when this runs: creating a release for
+      # a commit whose unpushed diff touches .github/workflows would need it.
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v') && steps.npmjs.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists, skipping"
+            exit 0
+          fi
+          # Prefer the CHANGELOG section for this version; fall back to the
+          # tag's commit message when the changelog has no entry.
+          version="${GITHUB_REF_NAME#v}"
+          notes_file=$(mktemp)
+          awk -v ver="$version" \
+            '$0 ~ "^## \\[" ver "\\]" {found=1; next}
+             found && /^## / {exit}
+             found {print}' CHANGELOG.md > "$notes_file"
+          if [ ! -s "$notes_file" ]; then
+            git log -1 --format=%B "$GITHUB_REF_NAME" > "$notes_file"
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            --title "v${GITHUB_REF_NAME#v}" \
+            --notes-file "$notes_file" \
+            --target "$GITHUB_SHA" \
+            --latest

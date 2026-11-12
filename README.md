@@ -1,5 +1,12 @@
 # Homebridge Skyworth Airton
 
+[![ci](https://github.com/tomtastic/homebridge-skyworth-airton/actions/workflows/ci.yml/badge.svg)](https://github.com/tomtastic/homebridge-skyworth-airton/actions/workflows/ci.yml)
+[![Homebridge 2.0](https://img.shields.io/badge/Homebridge-2.0%20ready-brightgreen)](https://github.com/homebridge/homebridge/wiki/Updating-To-Homebridge-v2.0)
+[![npm version](https://badgen.net/npm/v/homebridge-skyworth-airton)](https://www.npmjs.com/package/homebridge-skyworth-airton)
+[![npm downloads](https://badgen.net/npm/dt/homebridge-skyworth-airton)](https://www.npmjs.com/package/homebridge-skyworth-airton)
+
+___
+
 A local-only Homebridge platform plugin for Skyworth and Airton Wi-Fi air
 conditioners using the TCP protocol exposed on port 1998. It does not require a
 cloud account.
@@ -24,10 +31,35 @@ The main Heater/Cooler target reports them as Auto.
 
 ## Requirements
 
-- Homebridge 1.8 or 2.x
-- Node.js 22.10 or 24
+- Homebridge 1.9 or 2.x
+- Node.js 22, 24 or 26
 - A DHCP reservation or stable hostname for each air conditioner
 - TCP reachability from Homebridge to the device on port 1998
+
+## Install
+
+The plugin is published to [npm](https://www.npmjs.com/package/homebridge-skyworth-airton).
+Search for **homebridge-skyworth-airton** in the plugin settings of the
+Homebridge UI, or install it into your Homebridge user directory (for example
+`/homebridge` in the Docker image) by hand:
+
+```sh
+npm install --save --omit=dev homebridge-skyworth-airton
+```
+
+Then restart Homebridge and add the platform through the UI, which shows a
+settings screen for it, or edit `config.json` yourself as shown in
+[Configuration](#configuration).
+
+The same version is also mirrored to
+[GitHub Packages](https://github.com/tomtastic/homebridge-skyworth-airton/packages)
+as `@tomtastic/homebridge-skyworth-airton` for anyone who prefers that registry:
+
+```
+registry=https://registry.npmjs.org/
+@tomtastic:registry=https://npm.pkg.github.com/
+//npm.pkg.github.com/:_authToken=<GitHub npm token>
+```
 
 ## Connect the air conditioner to local Wi-Fi
 
@@ -118,7 +150,7 @@ port `1998` after provisioning.
 - Full setup protocol details are in
   [PROVISIONING_PROTOCOL.md](PROVISIONING_PROTOCOL.md).
 
-## Install for development
+## Development
 
 ```sh
 npm install
@@ -126,7 +158,38 @@ npm run build
 npm link
 ```
 
-Restart Homebridge after linking the plugin.
+Restart Homebridge after linking the plugin. The usual checks are
+`npm run lint`, `npm run typecheck` and `npm test`; the last of those builds
+first, because the unit tests exercise the compiled output.
+
+CI additionally boots real Homebridge against the plugin on every push, and the
+provisioning tool has its own tests:
+
+```sh
+python3 -m unittest test_skyworth_provision
+```
+
+## Releasing
+
+1. Add a section for the new version to `CHANGELOG.md`. The release notes of the
+   GitHub Release are taken from it, so keep the `## [x.y.z](…)` heading format.
+2. Bump `version` in `package.json`, merge to `main`, then tag the tip of
+   `main` and push the tag:
+
+   ```sh
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+3. `publish.yml` runs the checks, publishes to npm with
+   [trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC, so no
+   npm token lives in the repository), mirrors the package to GitHub Packages,
+   and creates the GitHub Release.
+
+The first release needs the npm trusted publisher registered once in the npm
+UI, under the package's **Trusted Publisher** settings: GitHub Actions, owner
+`tomtastic`, repository `homebridge-skyworth-airton`, workflow name
+`publish.yml`.
 
 ## Configuration
 
