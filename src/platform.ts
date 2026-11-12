@@ -79,8 +79,11 @@ export class SkyworthPlatform implements DynamicPlatformPlugin {
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
 
-      const context: SkyworthAccessoryContext = { device };
-      accessory.context = context;
+      // Merge into the existing context instead of replacing it: Homebridge keeps
+      // its own keys in there (e.g. the Matter window-covering flag), and they have
+      // to survive a reconfigure.
+      const context = accessory.context as SkyworthAccessoryContext;
+      context.device = device;
       this.api.updatePlatformAccessories([accessory]);
 
       const handler = new SkyworthPlatformAccessory(
